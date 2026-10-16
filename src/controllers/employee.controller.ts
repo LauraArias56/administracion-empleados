@@ -13,9 +13,6 @@ export class EmployeeController {
   constructor(readonly employeeService: IEmployeeService) {}
 
   createEmployee = async (req: Request, res: Response): Promise<void> => {
-    console.log("Content-Type:", req.headers["content-type"]);
-    console.log("Body recibido:", req.body);
-
     const request = req.body as CreateEmployeeRequestDTO;
 
     const result: EmployeeResponseDTO =
