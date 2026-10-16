@@ -2,4 +2,11 @@ node_modules
 .env
 dist/
 coverage
+<<<<<<< HEAD
 *.lcov
+=======
+*.lcov
+
+# Base de datos local en JSON
+data/
+>>>>>>> yeison

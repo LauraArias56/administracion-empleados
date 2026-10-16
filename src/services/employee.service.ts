@@ -4,51 +4,27 @@ import {
   CreateEmployeeRequestDTO,
   EmployeeResponseDTO,
   EmploymentStatus,
-  HistoryEntryDTO,
   RequestVacationDTO,
   ResolveVacationDTO,
   UpdateEmployeeRequestDTO,
   VacationResponseDTO,
-  VacationStatus,
 } from "../dto/employee.dto";
+import { EmployeeRecord, VacationRecord } from "../database/schema";
 import { AppException } from "../exceptions/app.exception";
 import { AppError } from "../exceptions/errors/app.error";
+import { IEmployeeRepository } from "../repositories/interfaces/employee.repository.interface";
+import { IVacationRepository } from "../repositories/interfaces/vacation.repository.interface";
 import { IEmployeeService } from "./interfaces/employee.interface";
-
-interface EmployeeRecord {
-  id: string;
-  document: string;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  position: string;
-  salary: number;
-  status: EmploymentStatus;
-  contract: {
-    startDate: string;
-    type: ContractType;
-    status: ContractStatus;
-  };
-  history: HistoryEntryDTO[];
-}
-
-interface VacationRecord {
-  id: string;
-  employeeId: string;
-  startDate: string;
-  endDate: string;
-  status: VacationStatus;
-}
 
 const CONTRACT_TYPES: ContractType[] = ["indefinido", "fijo", "obra_labor"];
 const CONTRACT_STATUSES: ContractStatus[] = ["vigente", "finalizado"];
 const EMPLOYMENT_STATUSES: EmploymentStatus[] = ["activo", "inactivo"];
 
 export class EmployeeService implements IEmployeeService {
-  private employees: EmployeeRecord[] = [];
-  private vacations: VacationRecord[] = [];
-  private employeeSequence = 1;
-  private vacationSequence = 1;
+  constructor(
+    private readonly employeeRepository: IEmployeeRepository,
+    private readonly vacationRepository: IVacationRepository
+  ) {}
 
   async createEmployee(request: CreateEmployeeRequestDTO): Promise<EmployeeResponseDTO> {
     const document = this.requiredText(request.document, AppError.DOCUMENT_REQUIRED);
@@ -85,13 +61,12 @@ export class EmployeeService implements IEmployeeService {
       this.fail(AppError.CONTRACT_DATE_INVALID);
     }
 
-    const duplicated = this.employees.find((employee) => employee.document === document);
+    const duplicated = await this.employeeRepository.findByDocument(document);
     if (duplicated) {
       this.fail(AppError.DOCUMENT_ALREADY_EXISTS);
     }
 
-    const employee: EmployeeRecord = {
-      id: String(this.employeeSequence),
+    const employee = await this.employeeRepository.create({
       document,
       firstName,
       lastName,
@@ -105,24 +80,23 @@ export class EmployeeService implements IEmployeeService {
         status: contractStatus,
       },
       history: [],
-    };
+    });
 
-    this.employeeSequence += 1;
-    this.employees.push(employee);
-    return this.cloneEmployee(employee);
+    return this.toEmployeeResponse(employee);
   }
 
   async getEmployee(id: string): Promise<EmployeeResponseDTO> {
-    return this.cloneEmployee(this.findEmployee(id));
+    return this.toEmployeeResponse(await this.findEmployee(id));
   }
 
   async updateEmployee(
     id: string,
     request: UpdateEmployeeRequestDTO
   ): Promise<EmployeeResponseDTO> {
-    const employee = this.findEmployee(id);
+    const employee = await this.findEmployee(id);
     const changedAt = new Date().toISOString().slice(0, 10);
 
+    let changed = false;
     let nextPosition: string | undefined;
     if (request.position !== undefined) {
       nextPosition = this.requiredText(request.position, AppError.POSITION_REQUIRED);
@@ -144,6 +118,7 @@ export class EmployeeService implements IEmployeeService {
         changedAt,
       });
       employee.position = nextPosition;
+      changed = true;
     }
 
     if (request.salary !== undefined && request.salary !== employee.salary) {
@@ -154,6 +129,7 @@ export class EmployeeService implements IEmployeeService {
         changedAt,
       });
       employee.salary = request.salary;
+      changed = true;
     }
 
     if (request.status !== undefined && request.status !== employee.status) {
@@ -164,16 +140,22 @@ export class EmployeeService implements IEmployeeService {
         changedAt,
       });
       employee.status = request.status;
+      changed = true;
     }
 
-    return this.cloneEmployee(employee);
+    if (!changed) {
+      return this.toEmployeeResponse(employee);
+    }
+
+    const saved = await this.employeeRepository.update(employee);
+    return this.toEmployeeResponse(saved);
   }
 
   async requestVacation(
     employeeId: string,
     request: RequestVacationDTO
   ): Promise<VacationResponseDTO> {
-    const employee = this.findEmployee(employeeId);
+    const employee = await this.findEmployee(employeeId);
 
     if (employee.status !== "activo") {
       this.fail(AppError.EMPLOYEE_INACTIVE);
@@ -187,9 +169,9 @@ export class EmployeeService implements IEmployeeService {
       this.fail(AppError.VACATION_DATES_INVALID);
     }
 
-    const overlap = this.vacations.find(
+    const employeeVacations = await this.vacationRepository.findByEmployeeId(employee.id);
+    const overlap = employeeVacations.find(
       (vacation) =>
-        vacation.employeeId === employee.id &&
         vacation.status !== "rechazada" &&
         request.startDate <= vacation.endDate &&
         vacation.startDate <= request.endDate
@@ -199,17 +181,14 @@ export class EmployeeService implements IEmployeeService {
       this.fail(AppError.VACATION_OVERLAP);
     }
 
-    const vacation: VacationRecord = {
-      id: String(this.vacationSequence),
+    const vacation = await this.vacationRepository.create({
       employeeId: employee.id,
       startDate: request.startDate,
       endDate: request.endDate,
       status: "pendiente",
-    };
+    });
 
-    this.vacationSequence += 1;
-    this.vacations.push(vacation);
-    return { ...vacation };
+    return this.toVacationResponse(vacation);
   }
 
   async resolveVacation(
@@ -220,7 +199,7 @@ export class EmployeeService implements IEmployeeService {
       this.fail(AppError.VACATION_ID_MANDATORY);
     }
 
-    const vacation = this.vacations.find((item) => item.id === vacationId);
+    const vacation = await this.vacationRepository.findById(vacationId);
     if (!vacation) {
       this.fail(AppError.VACATION_NOT_FOUND);
     }
@@ -237,15 +216,16 @@ export class EmployeeService implements IEmployeeService {
       this.fail(AppError.DECISION_INVALID);
     }
 
-    return { ...vacation };
+    const saved = await this.vacationRepository.update(vacation);
+    return this.toVacationResponse(saved);
   }
 
-  private findEmployee(id: string): EmployeeRecord {
+  private async findEmployee(id: string): Promise<EmployeeRecord> {
     if (!id || id.trim() === "") {
       this.fail(AppError.EMPLOYEE_ID_MANDATORY);
     }
 
-    const employee = this.employees.find((item) => item.id === id);
+    const employee = await this.employeeRepository.findById(id);
     if (!employee) {
       this.fail(AppError.EMPLOYEE_NOT_FOUND);
     }
@@ -286,7 +266,7 @@ export class EmployeeService implements IEmployeeService {
     );
   }
 
-  private cloneEmployee(employee: EmployeeRecord): EmployeeResponseDTO {
+  private toEmployeeResponse(employee: EmployeeRecord): EmployeeResponseDTO {
     return {
       id: employee.id,
       document: employee.document,
@@ -298,6 +278,16 @@ export class EmployeeService implements IEmployeeService {
       status: employee.status,
       contract: { ...employee.contract },
       history: employee.history.map((entry) => ({ ...entry })),
+    };
+  }
+
+  private toVacationResponse(vacation: VacationRecord): VacationResponseDTO {
+    return {
+      id: vacation.id,
+      employeeId: vacation.employeeId,
+      startDate: vacation.startDate,
+      endDate: vacation.endDate,
+      status: vacation.status,
     };
   }
 

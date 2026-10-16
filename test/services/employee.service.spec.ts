@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CreateEmployeeRequestDTO } from "../../src/dto/employee.dto";
 import { AppException } from "../../src/exceptions/app.exception";
-import { EmployeeService } from "../../src/services/employee.service";
+import { createTestService } from "../helpers/in-memory.repositories";
 
 function validEmployee(
   overrides: Partial<CreateEmployeeRequestDTO> = {}
@@ -22,7 +22,7 @@ function validEmployee(
 
 describe("EmployeeService", () => {
   it("should create an employee with contract and full name", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     const result = await service.createEmployee(validEmployee());
 
@@ -43,7 +43,7 @@ describe("EmployeeService", () => {
   });
 
   it("should trim names and accept an explicit inactive status", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     const result = await service.createEmployee(
       validEmployee({
@@ -67,7 +67,7 @@ describe("EmployeeService", () => {
   });
 
   it("should assign incremental ids", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     const first = await service.createEmployee(validEmployee());
     const second = await service.createEmployee(
@@ -79,7 +79,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an empty document", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.createEmployee(validEmployee({ document: "  " }))).rejects.toThrow(
       "El documento es obligatorio"
@@ -87,7 +87,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an empty first name", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.createEmployee(validEmployee({ firstName: "" }))).rejects.toThrow(
       "El nombre es obligatorio"
@@ -95,7 +95,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject a first name shorter than 3 characters", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.createEmployee(validEmployee({ firstName: "Lu" }))).rejects.toThrow(
       "El nombre debe tener al menos 3 caracteres"
@@ -103,7 +103,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an empty last name", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.createEmployee(validEmployee({ lastName: "" }))).rejects.toThrow(
       "El apellido es obligatorio"
@@ -111,7 +111,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an empty position", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.createEmployee(validEmployee({ position: " " }))).rejects.toThrow(
       "El cargo es obligatorio"
@@ -119,7 +119,7 @@ describe("EmployeeService", () => {
   });
 
   it("should accept a salary of zero", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     const result = await service.createEmployee(validEmployee({ salary: 0 }));
 
@@ -127,7 +127,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject a negative salary", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.createEmployee(validEmployee({ salary: -1 }))).rejects.toThrow(
       "El salario debe ser un número mayor o igual a cero"
@@ -135,7 +135,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject a salary that is not a number", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(
       service.createEmployee(validEmployee({ salary: "2500000" as unknown as number }))
@@ -143,7 +143,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject a request without a contract", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const request = validEmployee();
     delete (request as { contract?: CreateEmployeeRequestDTO["contract"] }).contract;
 
@@ -153,7 +153,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject a non finite salary", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(
       service.createEmployee(validEmployee({ salary: Number.NaN }))
@@ -161,7 +161,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an invalid employment status", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(
       service.createEmployee(validEmployee({ status: "retirado" as "activo" }))
@@ -169,7 +169,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an invalid contract type", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(
       service.createEmployee(
@@ -181,7 +181,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an invalid contract status", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(
       service.createEmployee(
@@ -197,7 +197,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an impossible contract date", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(
       service.createEmployee(
@@ -209,7 +209,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject a duplicated document", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     await service.createEmployee(validEmployee());
 
     await expect(service.createEmployee(validEmployee({ firstName: "Maria" }))).rejects.toMatchObject({
@@ -219,7 +219,7 @@ describe("EmployeeService", () => {
   });
 
   it("should return the employee by id", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     const result = await service.getEmployee(created.id);
@@ -229,13 +229,13 @@ describe("EmployeeService", () => {
   });
 
   it("should reject a missing employee id", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.getEmployee(" ")).rejects.toThrow("El id del empleado es obligatorio");
   });
 
   it("should reject an unknown employee", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.getEmployee("99")).rejects.toMatchObject({
       code: "EMPLOYEE_NOT_FOUND",
@@ -244,7 +244,7 @@ describe("EmployeeService", () => {
   });
 
   it("should record position, salary and status changes", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
     const changedAt = new Date().toISOString().slice(0, 10);
 
@@ -280,7 +280,7 @@ describe("EmployeeService", () => {
   });
 
   it("should keep history empty when values do not change", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     const result = await service.updateEmployee(created.id, {
@@ -293,7 +293,7 @@ describe("EmployeeService", () => {
   });
 
   it("should not change the employee when the salary is invalid", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     await expect(
@@ -306,7 +306,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an empty position on update", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     await expect(service.updateEmployee(created.id, { position: " " })).rejects.toThrow(
@@ -315,7 +315,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an invalid status on update", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     await expect(
@@ -324,7 +324,7 @@ describe("EmployeeService", () => {
   });
 
   it("should request vacations for an active employee", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     const vacation = await service.requestVacation(created.id, {
@@ -342,7 +342,7 @@ describe("EmployeeService", () => {
   });
 
   it("should allow a one day vacation", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     const vacation = await service.requestVacation(created.id, {
@@ -354,7 +354,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject vacations for an inactive employee", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee({ status: "inactivo" }));
 
     await expect(
@@ -366,7 +366,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject vacations when the end date is before the start date", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     await expect(
@@ -378,7 +378,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject vacations with an invalid date", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
 
     await expect(
@@ -390,7 +390,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject overlapping pending or approved vacations", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
     const pending = await service.requestVacation(created.id, {
       startDate: "2026-06-01",
@@ -407,7 +407,7 @@ describe("EmployeeService", () => {
   });
 
   it("should allow a new request when the previous one was rejected", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
     const pending = await service.requestVacation(created.id, {
       startDate: "2026-08-01",
@@ -425,7 +425,7 @@ describe("EmployeeService", () => {
   });
 
   it("should approve and reject a pending vacation", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
     const first = await service.requestVacation(created.id, {
       startDate: "2026-09-01",
@@ -444,7 +444,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an empty vacation id", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.resolveVacation(" ", { decision: "aprobar" })).rejects.toThrow(
       "El id de la vacación es obligatorio"
@@ -452,7 +452,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an unknown vacation", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.resolveVacation("40", { decision: "aprobar" })).rejects.toMatchObject({
       code: "VACATION_NOT_FOUND",
@@ -461,7 +461,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject resolving a vacation twice", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
     const vacation = await service.requestVacation(created.id, {
       startDate: "2026-11-01",
@@ -475,7 +475,7 @@ describe("EmployeeService", () => {
   });
 
   it("should reject an invalid decision", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
     const created = await service.createEmployee(validEmployee());
     const vacation = await service.requestVacation(created.id, {
       startDate: "2026-12-01",
@@ -488,7 +488,7 @@ describe("EmployeeService", () => {
   });
 
   it("should expose the application error code", async () => {
-    const service = new EmployeeService();
+    const service = createTestService();
 
     await expect(service.createEmployee(validEmployee({ salary: -5 }))).rejects.toBeInstanceOf(
       AppException
