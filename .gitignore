@@ -2,11 +2,17 @@ node_modules
 .env
 dist/
 coverage
-<<<<<<< HEAD
-*.lcov
-=======
 *.lcov
 
-# Base de datos local en JSON
+# Base de datos local (SQLite) y JSON de la versión anterior
 data/
->>>>>>> yeison
+
+# Resultados de Playwright
+playwright-report/
+test-results/
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
