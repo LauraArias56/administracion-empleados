@@ -32,9 +32,10 @@ export interface VacationRecord {
 }
 
 /**
- * Estructura completa del archivo JSON.
- * `sequences` guarda el último id entregado para que los ids
- * no se repitan después de reiniciar el servidor.
+ * Estructura del archivo JSON de la versión anterior. Ya no es la persistencia
+ * de la aplicación (ahora es SQLite, ver `sqlite-schema.ts`); se conserva solo
+ * para poder leer ese archivo en la migración (`json-migration.ts`).
+ * `sequences` guarda el último id entregado.
  */
 export interface DatabaseSchema {
   sequences: {
