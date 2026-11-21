@@ -6,8 +6,11 @@
     "server.js": {
       "includeFiles": "frontend/dist/**"
     },
-    "api/[...path].js": {
+    "api/index.js": {
       "includeFiles": "dist/**"
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api?path=$1" }
+  ]
 }
