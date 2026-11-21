@@ -10,7 +10,12 @@ async function request(path, options = {}) {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error("La API no respondió con datos.");
+  }
   if (!response.ok) {
     throw new Error(data?.message || "No se pudo completar la operación.");
   }

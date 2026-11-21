@@ -5,6 +5,9 @@
   "functions": {
     "server.js": {
       "includeFiles": "frontend/dist/**"
+    },
+    "api/[...path].js": {
+      "includeFiles": "dist/**"
     }
   }
 }

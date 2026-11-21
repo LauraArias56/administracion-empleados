@@ -120,7 +120,7 @@ export default function App() {
         </nav>
       </header>
       <main>
-        {loadError ? <p className="banner" role="alert">{loadError} Revisa que el backend esté encendido en el puerto 3000.</p> : null}
+        {loadError ? <p className="banner" role="alert">{loadError}</p> : null}
         {view}
       </main>
       <Toast message={toast} />
