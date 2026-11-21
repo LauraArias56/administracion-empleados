@@ -21,6 +21,9 @@ export const createServer = () => {
   });
   app.use(scopePerRequest(container));
   app.use("/api", V1Routes);
+  // Vercel bloquea /api/v1/... antes de llegar aquí. La página sigue
+  // pidiendo /api, y el rewrite de vercel.json lo entrega en /backend.
+  app.use("/backend", V1Routes);
   app.use(errorMiddleware);
 
   return app;
