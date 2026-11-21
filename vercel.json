@@ -5,9 +5,9 @@
   "functions": {
     "server.js": {
       "includeFiles": "frontend/dist/**"
+    },
+    "api/**/*.js": {
+      "includeFiles": "dist/**"
     }
-  },
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/backend/:path*" }
-  ]
+  }
 }

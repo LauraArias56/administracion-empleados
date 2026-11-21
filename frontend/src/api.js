@@ -1,8 +1,7 @@
-/* Cliente de la API. En local, Vite reenvía /backend al puerto 3000.
-   En Vercel la página pide /backend porque /api/v1 no llega al programa. */
+/* Cliente de la API. En local, Vite reenvía /api al backend del puerto 3000. */
 
 async function request(path, options = {}) {
-  const response = await fetch(`/backend/v1${path}`, {
+  const response = await fetch(`/api/v1${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
