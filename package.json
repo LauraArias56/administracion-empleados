@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc",
+    "build": "tsc && npm run build --prefix frontend",
     "start": "node dist/main.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

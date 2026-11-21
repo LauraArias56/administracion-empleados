@@ -1,7 +1,7 @@
-/* Cliente de la API. En local, Vite reenvía /api al backend del puerto 3000. */
+/* Cliente de la API. /datos llega al programa publicado; /api/v1 lo corta Vercel. */
 
 async function request(path, options = {}) {
-  const response = await fetch(`/api/v1${path}`, {
+  const response = await fetch(`/datos/v1${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
