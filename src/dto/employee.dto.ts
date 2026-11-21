@@ -36,6 +36,7 @@ export interface UpdateEmployeeRequestDTO {
   position?: string;
   salary?: number;
   status?: EmploymentStatus;
+  contractStatus?: ContractStatus;
 }
 
 export interface EmployeeResponseDTO {

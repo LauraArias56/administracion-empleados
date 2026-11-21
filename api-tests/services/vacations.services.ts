@@ -1,5 +1,9 @@
 import { APIRequestContext, APIResponse } from "@playwright/test";
 
+export async function listVacations(request: APIRequestContext): Promise<APIResponse> {
+  return await request.get("v1/vacations");
+}
+
 export async function resolveVacation(
   request: APIRequestContext,
   vacationId: string,

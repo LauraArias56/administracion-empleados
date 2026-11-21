@@ -3,6 +3,7 @@ import { EmployeeRecord } from "../../database/schema";
 export type NewEmployee = Omit<EmployeeRecord, "id">;
 
 export interface IEmployeeRepository {
+  findAll(): Promise<EmployeeRecord[]>;
   findById(id: string): Promise<EmployeeRecord | null>;
   findByDocument(document: string): Promise<EmployeeRecord | null>;
   /** Asigna el id y lanza DOCUMENT_ALREADY_EXISTS si el documento ya existe. */

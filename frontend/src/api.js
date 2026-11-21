@@ -1,0 +1,33 @@
+/* Cliente de la API. En local, Vite reenvía /api al backend del puerto 3000. */
+
+async function request(path, options = {}) {
+  const response = await fetch(`/api/v1${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers ?? {}),
+    },
+  });
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) {
+    throw new Error(data?.message || "No se pudo completar la operación.");
+  }
+  return data;
+}
+
+export const loadEmployees = () => request("/employees");
+export const loadVacations = () => request("/vacations");
+
+export const createEmployee = (body) =>
+  request("/employees", { method: "POST", body: JSON.stringify(body) });
+
+export const updateEmployee = (id, body) =>
+  request(`/employees/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+
+export const requestVacation = (employeeId, body) =>
+  request(`/employees/${employeeId}/vacations`, { method: "POST", body: JSON.stringify(body) });
+
+export const resolveVacation = (id, decision) =>
+  request(`/vacations/${id}`, { method: "PATCH", body: JSON.stringify({ decision }) });

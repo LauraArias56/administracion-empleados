@@ -8,6 +8,8 @@ import {
 } from "../../dto/employee.dto";
 
 export interface IEmployeeService {
+  listEmployees(): Promise<EmployeeResponseDTO[]>;
+  listVacations(): Promise<VacationResponseDTO[]>;
   createEmployee(request: CreateEmployeeRequestDTO): Promise<EmployeeResponseDTO>;
   getEmployee(id: string): Promise<EmployeeResponseDTO>;
   updateEmployee(id: string, request: UpdateEmployeeRequestDTO): Promise<EmployeeResponseDTO>;

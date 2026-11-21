@@ -4,6 +4,16 @@ import { container } from "../../config/container";
 
 const router = Router();
 
+router.get("/employees", async (req, res) => {
+  const controller = container.resolve<EmployeeController>("employeeController");
+  return controller.listEmployees(req, res);
+});
+
+router.get("/vacations", async (req, res) => {
+  const controller = container.resolve<EmployeeController>("employeeController");
+  return controller.listVacations(req, res);
+});
+
 router.post("/employees", async (req, res) => {
   const controller = container.resolve<EmployeeController>("employeeController");
   return controller.createEmployee(req, res);

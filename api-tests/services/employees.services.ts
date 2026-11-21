@@ -1,5 +1,9 @@
 import { APIRequestContext, APIResponse } from "@playwright/test";
 
+export async function listEmployees(request: APIRequestContext): Promise<APIResponse> {
+  return await request.get("v1/employees");
+}
+
 export async function createEmployee(
   request: APIRequestContext,
   data: unknown

@@ -15,6 +15,10 @@ export class InMemoryEmployeeRepository implements IEmployeeRepository {
   private items: EmployeeRecord[] = [];
   private sequence = 0;
 
+  async findAll() {
+    return this.items.map((item) => structuredClone(item));
+  }
+
   async findById(id: string) {
     const found = this.items.find((item) => item.id === id);
     return found ? structuredClone(found) : null;
@@ -50,6 +54,10 @@ export class InMemoryEmployeeRepository implements IEmployeeRepository {
 export class InMemoryVacationRepository implements IVacationRepository {
   private items: VacationRecord[] = [];
   private sequence = 0;
+
+  async findAll() {
+    return this.items.map((item) => structuredClone(item));
+  }
 
   async findById(id: string) {
     const found = this.items.find((item) => item.id === id);

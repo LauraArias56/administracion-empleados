@@ -17,6 +17,14 @@ interface VacationRow {
 export class SqliteVacationRepository implements IVacationRepository {
   constructor(private readonly database: SqliteDatabase) {}
 
+  async findAll(): Promise<VacationRecord[]> {
+    const rows = this.database.db
+      .prepare("SELECT * FROM vacations ORDER BY id")
+      .all() as unknown as VacationRow[];
+
+    return rows.map((row) => this.toRecord(row));
+  }
+
   async findById(id: string): Promise<VacationRecord | null> {
     const numericId = parseId(id);
     if (numericId === null) {

@@ -33,6 +33,14 @@ const failWith = (error: { code: string; statusCode: number; message: string }):
 export class SqliteEmployeeRepository implements IEmployeeRepository {
   constructor(private readonly database: SqliteDatabase) {}
 
+  async findAll(): Promise<EmployeeRecord[]> {
+    const rows = this.database.db
+      .prepare("SELECT * FROM employees ORDER BY id")
+      .all() as unknown as EmployeeRow[];
+
+    return rows.map((row) => this.toRecord(row));
+  }
+
   async findById(id: string): Promise<EmployeeRecord | null> {
     const numericId = parseId(id);
     if (numericId === null) {

@@ -26,6 +26,16 @@ export class EmployeeService implements IEmployeeService {
     private readonly vacationRepository: IVacationRepository
   ) {}
 
+  async listEmployees(): Promise<EmployeeResponseDTO[]> {
+    const employees = await this.employeeRepository.findAll();
+    return employees.map((employee) => this.toEmployeeResponse(employee));
+  }
+
+  async listVacations(): Promise<VacationResponseDTO[]> {
+    const vacations = await this.vacationRepository.findAll();
+    return vacations.map((vacation) => this.toVacationResponse(vacation));
+  }
+
   async createEmployee(request: CreateEmployeeRequestDTO): Promise<EmployeeResponseDTO> {
     const document = this.requiredText(request.document, AppError.DOCUMENT_REQUIRED);
     const firstName = this.requiredText(request.firstName, AppError.FIRST_NAME_REQUIRED);
@@ -110,6 +120,13 @@ export class EmployeeService implements IEmployeeService {
       this.fail(AppError.EMPLOYMENT_STATUS_INVALID);
     }
 
+    if (
+      request.contractStatus !== undefined &&
+      !CONTRACT_STATUSES.includes(request.contractStatus)
+    ) {
+      this.fail(AppError.CONTRACT_STATUS_INVALID);
+    }
+
     if (nextPosition !== undefined && nextPosition !== employee.position) {
       employee.history.push({
         type: "cargo",
@@ -140,6 +157,14 @@ export class EmployeeService implements IEmployeeService {
         changedAt,
       });
       employee.status = request.status;
+      changed = true;
+    }
+
+    if (
+      request.contractStatus !== undefined &&
+      request.contractStatus !== employee.contract.status
+    ) {
+      employee.contract = { ...employee.contract, status: request.contractStatus };
       changed = true;
     }
 

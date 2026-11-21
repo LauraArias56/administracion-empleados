@@ -487,6 +487,23 @@ describe("EmployeeService", () => {
     ).rejects.toThrow("La decisión debe ser aprobar o rechazar");
   });
 
+  it("should list employees and vacations and finish a contract", async () => {
+    const service = createTestService();
+    const created = await service.createEmployee(validEmployee());
+    await service.requestVacation(created.id, {
+      startDate: "2026-12-01",
+      endDate: "2026-12-02",
+    });
+
+    const employees = await service.listEmployees();
+    const vacations = await service.listVacations();
+    const finished = await service.updateEmployee(created.id, { contractStatus: "finalizado" });
+
+    expect(employees.map((item) => item.id)).toContain(created.id);
+    expect(vacations).toHaveLength(1);
+    expect(finished.contract.status).toBe("finalizado");
+  });
+
   it("should expose the application error code", async () => {
     const service = createTestService();
 

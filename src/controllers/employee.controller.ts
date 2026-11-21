@@ -12,6 +12,16 @@ import { IEmployeeService } from "../services/interfaces/employee.interface";
 export class EmployeeController {
   constructor(readonly employeeService: IEmployeeService) {}
 
+  listEmployees = async (_req: Request, res: Response): Promise<void> => {
+    const result = await this.employeeService.listEmployees();
+    res.status(200).json(result);
+  };
+
+  listVacations = async (_req: Request, res: Response): Promise<void> => {
+    const result = await this.employeeService.listVacations();
+    res.status(200).json(result);
+  };
+
   createEmployee = async (req: Request, res: Response): Promise<void> => {
     const request = req.body as CreateEmployeeRequestDTO;
 
