@@ -2,7 +2,7 @@ import { test, expect } from "../../fixtures/employee.fixture";
 import { listEmployees } from "../../services/employees.services";
 
 test.describe("GET /api/v1/employees", () => {
-  test("should return the employees stored in SQLite", async ({ request, employee }) => {
+  test("should return the employees stored in PostgreSQL", async ({ request, employee }) => {
     const response = await listEmployees(request);
 
     expect(response.status()).toBe(200);

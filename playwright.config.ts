@@ -1,7 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-// Las pruebas de API se ejecutan contra la aplicación real (dist/main.js) usando SQLite,
-// en un puerto y con una base de datos de prueba independientes de los de la presentación.
+// Las pruebas usan el esquema PostgreSQL aislado test_api.
 const PORT = Number(process.env.TEST_PORT) || 3100;
 
 export default defineConfig({

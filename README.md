@@ -2,14 +2,13 @@
 
 API REST para centralizar empleados, contratos, vacaciones e historial de cargo y salario.
 
-Arquitectura en capas: rutas, controlador, servicio, DTOs, contenedor Awilix y manejo global de errores. Las reglas de negocio viven en el servicio y acceden a los datos mediante repositorios. La persistencia es **SQLite** (archivo local `.db`).
+Arquitectura en capas: rutas, controlador, servicio, DTOs, contenedor Awilix y manejo global de errores. Las reglas de negocio viven en el servicio y acceden a los datos mediante repositorios. La persistencia usa PostgreSQL en Supabase mediante el driver `pg`.
 
 ## Requisitos
 
-- **Node.js 22.13 o superior** (`node -v`). SQLite se usa mediante el módulo `node:sqlite` incluido en Node.js: no hay que instalar nada más, ni compilar, ni usar Docker o un administrador de bases de datos.
+- **Node.js 22.13 o superior** (`node -v`) y una base PostgreSQL de Supabase. Configura `DATABASE_URL` en `.env` a partir de `.env.example`; la contraseña solo se introduce en ese archivo local.
 - Opcional: `npm install` solo si falta la carpeta `node_modules` (el proyecto ya la incluye).
 
-> Node muestra al arrancar el aviso `ExperimentalWarning: SQLite is an experimental feature`. Es normal y no afecta al funcionamiento.
 
 ## Comandos
 
@@ -19,11 +18,10 @@ Arquitectura en capas: rutas, controlador, servicio, DTOs, contenedor Awilix y m
 | `npm start` | Inicia la API (`dist/main.js`) en `http://localhost:3000`. Ejecutar antes `npm run build` |
 | `npm run dev` | Inicia la API en modo desarrollo (`tsx watch`) |
 | `npm test` | Pruebas unitarias (Vitest) |
-| `npm run test:api` | Compila y ejecuta las pruebas de API con Playwright contra la app real y SQLite |
+| `npm run test:api` | Compila y ejecuta las pruebas de API con Playwright contra la app real y PostgreSQL en `test_api` |
 | `npm run test:api:report` | Abre el reporte HTML de la última ejecución de Playwright |
 | `npm run check:endpoints` | Verifica que cada endpoint de la app tiene pruebas Playwright |
 | `npm run verify:persistence` | Arranca la app, crea datos, la reinicia y comprueba que los datos siguen |
-| `npm run migrate:json` | Importa manualmente un JSON antiguo a SQLite (seguro de repetir) |
 | `npm run typecheck:api` | Comprueba los tipos de las pruebas Playwright |
 
 Inicio rápido para presentar:
@@ -45,17 +43,16 @@ Prefijo: `/api/v1`
 | POST | `/employees/:id/vacations` | Solicita vacaciones y valida fechas y solapes |
 | PATCH | `/vacations/:id` | Aprueba o rechaza una solicitud pendiente |
 
-## Persistencia (SQLite)
+## Persistencia (PostgreSQL)
 
-El archivo es `data/employees.db` (se crea solo en el primer arranque, junto con las tablas; `data/` está en `.gitignore`). Variables de entorno opcionales:
+Las tablas se crean al iniciar con `CREATE TABLE IF NOT EXISTS`. No se importan datos de archivos locales anteriores. Variables de entorno:
 
 | Variable | Por defecto | Uso |
 | --- | --- | --- |
-| `SQLITE_DB_FILE` | `data/employees.db` | Ubicación del archivo SQLite |
-| `LEGACY_JSON_FILE` | `data/db.json` | JSON de la versión anterior a migrar (vacío = no migrar) |
+| `DATABASE_URL` | — | URI PostgreSQL de Supabase; obligatoria |
+| `DB_SCHEMA` | `public` | Esquema PostgreSQL |
 | `PORT` | `3000` | Puerto de la API |
 
-La base usa el modo WAL de SQLite (más rápido al escribir): mientras la app corre aparecen también `employees.db-wal` y `employees.db-shm`, y al cerrarse limpiamente se vuelcan al `.db` y desaparecen. Para llevar los datos a otro equipo, cierra la app y copia `data/employees.db` (si la copias con la app abierta, copia también los archivos `-wal` y `-shm`).
 
 ### Tablas
 
@@ -63,18 +60,16 @@ Derivadas de lo que ya usaba la aplicación (`EmployeeRecord`, `HistoryEntryDTO`
 
 | Tabla | Columnas | Restricciones |
 | --- | --- | --- |
-| `employees` | `id` (PK, autoincremental), `document`, `first_name`, `last_name`, `position`, `salary`, `status`, `contract_start_date`, `contract_type`, `contract_status` | `document` UNIQUE; `salary >= 0`; CHECK de `status`, `contract_type`, `contract_status` con los valores del DTO |
-| `employee_history` | `id` (PK), `employee_id` (FK → `employees.id`), `type`, `previous_value`, `new_value`, `changed_at` | CHECK de `type` (`cargo`, `salario`, `estado`); índice por `employee_id` |
-| `vacations` | `id` (PK, autoincremental), `employee_id` (FK → `employees.id`), `start_date`, `end_date`, `status` | CHECK de `status`; `end_date >= start_date`; índice por `employee_id` |
+| `employees` | `id` BIGINT identity PRIMARY KEY, `document`, `first_name`, `last_name`, `position`, `salary` DOUBLE PRECISION, `status`, `contract_start_date` TEXT, `contract_type`, `contract_status` | `document` UNIQUE; `salary >= 0`; CHECK de `status`, `contract_type`, `contract_status` con los valores del DTO |
+| `employee_history` | `id` BIGINT identity PRIMARY KEY, `employee_id` (FK → `employees.id`), `type`, `previous_value`, `new_value`, `changed_at` | CHECK de `type` (`cargo`, `salario`, `estado`); índice por `employee_id` |
+| `vacations` | `id` BIGINT identity PRIMARY KEY, `employee_id` (FK → `employees.id`), `start_date`, `end_date` TEXT, `status` | CHECK de `status`; `end_date >= start_date`; índice por `employee_id` |
 
-### Migración desde JSON
 
-Al arrancar, si la base SQLite está vacía y existe `data/db.json`, sus datos se importan conservando los ids originales y la secuencia de ids. El JSON nunca se modifica ni se borra. Como después de importar la base ya no está vacía, no se vuelve a importar. `npm run migrate:json [archivo.json] [archivo.db]` repite la importación de forma idempotente (omite lo ya existente). Si hay un conflicto o un registro inválido, se cancela todo (ROLLBACK).
 
 ## Pruebas
 
-- **Unitarias (Vitest, `test/`)**: servicio, controlador, middleware, repositorios SQLite y migración.
-- **API (Playwright, `api-tests/`)**: se ejecutan contra la aplicación real compilada, con SQLite. `npm run test:api` levanta la app en el puerto **3100** con una base independiente (`data/test/employees.test.db`, recreada vacía en cada ejecución), así que no toca los datos de la presentación. Cada prueba crea sus propios datos con documentos únicos, por lo que se pueden repetir y ejecutar en cualquier orden. No requieren navegadores.
+- **Unitarias (Vitest, `test/`)**: servicio, controlador, middleware, repositorios PostgreSQL.
+- **API (Playwright, `api-tests/`)**: se ejecutan contra la aplicación real compilada en el esquema `test_api`, que se recrea para cada ejecución. Requieren `DATABASE_URL`. Los scripts solo recrean esquemas con prefijos `test_` o `verify_`, nunca `public`.
 
 ### Cobertura de endpoints
 
@@ -92,16 +87,13 @@ Al arrancar, si la base SQLite está vacía y existe `data/db.json`, sus datos s
 
 ```
 src/
-  config/container.ts            Contenedor Awilix (registra SQLite)
+  config/container.ts            Contenedor Awilix (registra PostgreSQL)
   database/
-    sqlite-database.ts           Conexión, transacciones, creación de tablas
-    sqlite-schema.ts             SQL de las tablas
-    json-migration.ts            Migración JSON -> SQLite (idempotente)
-    bootstrap.ts                 Inicialización + migración al arrancar
-    schema.ts                    Tipos de registro (y formato del JSON antiguo)
+    postgres-database.ts         Pool pg, transacciones y tablas
+    schema.ts                    Tipos de registro
   repositories/
-    sqlite-employee.repository.ts / sqlite-vacation.repository.ts / sqlite-id.ts
+    postgres-employee.repository.ts / postgres-vacation.repository.ts
 api-tests/                       Pruebas Playwright (services, fixtures, support, tests)
-scripts/                         migrate-json, check-endpoint-coverage, verify-persistence
+scripts/                         check-endpoint-coverage, verify-persistence
 playwright.config.ts
 ```

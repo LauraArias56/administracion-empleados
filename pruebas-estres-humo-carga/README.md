@@ -7,7 +7,7 @@ Pruebas de humo (smoke), carga (load) y estrés (stress) de la API de administra
 - [k6](https://k6.io/docs/get-started/installation/) instalado (`k6 version`). No es un paquete de npm.
 - La aplicación en ejecución, por defecto en `http://localhost:3000/api`. Otra dirección: `k6 run -e BASE_URL=http://localhost:3100/api <archivo>`.
 
-> Estas pruebas **crean datos reales** (empleados, vacaciones, historial), sobre todo carga y estrés. Arranca la aplicación con una base aparte para no ensuciar la de la presentación: `SQLITE_DB_FILE=data/performance.db npm start` (PowerShell: `$env:SQLITE_DB_FILE="data/performance.db"; npm start`).
+> Estas pruebas crean datos de prueba. Configura la app con un esquema aislado cuyo nombre empiece por `test_` o `verify_`, usando la `DATABASE_URL` de `.env`; por ejemplo `DB_SCHEMA=test_performance npm start` (PowerShell: `$env:DB_SCHEMA="test_performance"; npm start`). No ejecutes k6 contra datos de uso normal.
 
 ## Estructura
 
