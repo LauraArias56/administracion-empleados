@@ -4,11 +4,13 @@ import { createServer } from "./server";
 
 const database = container.resolve<PostgresDatabase>("database");
 void database.initialize().then(() => {
+  const app = createServer();
+  const PORT = Number(process.env.PORT) || 3000;
 
-const app = createServer();
-const PORT = Number(process.env.PORT) || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}).catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
 });
-}).catch((error) => { console.error(error); process.exitCode = 1; });

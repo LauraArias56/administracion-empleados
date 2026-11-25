@@ -13,6 +13,7 @@ export const createServer = () => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Cache-Control", "no-store");
     if (req.method === "OPTIONS") {
       res.sendStatus(204);
       return;
