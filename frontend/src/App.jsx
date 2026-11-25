@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadEmployees, loadVacations } from "./api";
 import { millions } from "./domain";
 import { Contracts } from "./modules/Contracts";
@@ -18,6 +18,16 @@ const TABS = [
 
 const ROLES = ["Administrador", "RRHH", "Consulta"];
 
+function mergeEmployees(...groups) {
+  const byId = new Map();
+  for (const group of groups) {
+    for (const employee of group) {
+      if (employee?.id != null) byId.set(String(employee.id), employee);
+    }
+  }
+  return [...byId.values()].sort((a, b) => Number(a.id) - Number(b.id));
+}
+
 export default function App() {
   const [employees, setEmployees] = useState([]);
   const [vacations, setVacations] = useState([]);
@@ -25,14 +35,24 @@ export default function App() {
   const [tab, setTab] = useState("empleados");
   const [toast, setToast] = useState("");
   const [loadError, setLoadError] = useState("");
+  const reloadRequest = useRef(0);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (extraEmployees = []) => {
+    const requestId = ++reloadRequest.current;
     try {
       const [people, requests] = await Promise.all([loadEmployees(), loadVacations()]);
-      setEmployees(people);
-      setVacations(requests);
+      if (requestId !== reloadRequest.current) return;
+      const incoming = Array.isArray(people) ? people : [];
+      const added = Array.isArray(extraEmployees) ? extraEmployees : [];
+      setEmployees((current) => mergeEmployees(current, incoming, added));
+      setVacations(Array.isArray(requests) ? requests : []);
       setLoadError("");
     } catch (error) {
+      if (requestId !== reloadRequest.current) return;
+      const added = Array.isArray(extraEmployees) ? extraEmployees : [];
+      if (added.length > 0) {
+        setEmployees((current) => mergeEmployees(current, added));
+      }
       setLoadError(error.message || "No hay conexión con la base de datos.");
     }
   }, []);

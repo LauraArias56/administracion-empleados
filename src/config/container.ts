@@ -1,7 +1,10 @@
 import path from "path";
 import { asClass, asValue, createContainer, InjectionMode } from "awilix";
 import { EmployeeController } from "../controllers/employee.controller";
+import { PostgresDatabase } from "../database/postgres-database";
 import { SqliteDatabase } from "../database/sqlite-database";
+import { PostgresEmployeeRepository } from "../repositories/postgres-employee.repository";
+import { PostgresVacationRepository } from "../repositories/postgres-vacation.repository";
 import { SqliteEmployeeRepository } from "../repositories/sqlite-employee.repository";
 import { SqliteVacationRepository } from "../repositories/sqlite-vacation.repository";
 import { EmployeeService } from "../services/employee.service";
@@ -20,10 +23,23 @@ export const container = createContainer({
   injectionMode: InjectionMode.CLASSIC,
 });
 
-container.register({
-  database: asValue(new SqliteDatabase(DATABASE_FILE)),
-  employeeRepository: asClass(SqliteEmployeeRepository).singleton(),
-  vacationRepository: asClass(SqliteVacationRepository).singleton(),
-  employeeService: asClass(EmployeeService).singleton(),
-  employeeController: asClass(EmployeeController).scoped(),
-});
+const databaseUrl = process.env.DATABASE_URL ?? "";
+const usePostgres = databaseUrl.length > 0;
+
+if (usePostgres) {
+  container.register({
+    database: asValue(new PostgresDatabase(databaseUrl, process.env.DB_SCHEMA || "public")),
+    employeeRepository: asClass(PostgresEmployeeRepository).singleton(),
+    vacationRepository: asClass(PostgresVacationRepository).singleton(),
+    employeeService: asClass(EmployeeService).singleton(),
+    employeeController: asClass(EmployeeController).scoped(),
+  });
+} else {
+  container.register({
+    database: asValue(new SqliteDatabase(DATABASE_FILE)),
+    employeeRepository: asClass(SqliteEmployeeRepository).singleton(),
+    vacationRepository: asClass(SqliteVacationRepository).singleton(),
+    employeeService: asClass(EmployeeService).singleton(),
+    employeeController: asClass(EmployeeController).scoped(),
+  });
+}

@@ -73,7 +73,7 @@ export function Employees({ employees, role, reload, notify }) {
 
     try {
       if (form.mode === "create") {
-        await createEmployee({
+        const saved = await createEmployee({
           document,
           firstName,
           lastName,
@@ -87,6 +87,9 @@ export function Employees({ employees, role, reload, notify }) {
           },
         });
         notify("Empleado guardado en la base de datos.");
+        setForm(null);
+        await reload(saved ? [saved] : []);
+        return;
       } else {
         await updateEmployee(form.id, {
           position: form.position,

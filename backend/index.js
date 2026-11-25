@@ -1,9 +1,9 @@
 /**
  * Arranque del backend para Vercel.
- * En el computador usa la misma base SQLite del proyecto (data/employees.db).
- * En Vercel el disco no conserva archivos: la base vive en /tmp y se crea vacía.
+ * Si existe DATABASE_URL, todos los empleados quedan en Supabase.
+ * Sin esa variable, en el computador se usa data/employees.db.
  */
-if (process.env.VERCEL && !process.env.SQLITE_DB_FILE) {
+if (process.env.VERCEL && !process.env.DATABASE_URL && !process.env.SQLITE_DB_FILE) {
   process.env.SQLITE_DB_FILE = "/tmp/employees.db";
   process.env.LEGACY_JSON_FILE = "";
 }
@@ -11,13 +11,17 @@ if (process.env.VERCEL && !process.env.SQLITE_DB_FILE) {
 const { container, LEGACY_JSON_FILE } = require("../dist/config/container");
 const { bootstrapDatabase } = require("../dist/database/bootstrap");
 const { createServer } = require("../dist/server");
-const v1Routes = require("../dist/routes/v1").default;
 
 const database = container.resolve("database");
-bootstrapDatabase(database, LEGACY_JSON_FILE);
+const ready = database.pool
+  ? database.initialize()
+  : Promise.resolve(bootstrapDatabase(database, LEGACY_JSON_FILE));
 
 const app = createServer();
-// Misma API en /backend: Vercel no deja pasar /api/v1/... hasta el programa.
-app.use("/backend", v1Routes);
+app.use((req, res, next) => {
+  ready.then(() => next()).catch(next);
+});
+const stack = (app.router || app._router).stack;
+stack.unshift(stack.pop());
 
 module.exports = app;
