@@ -76,7 +76,7 @@ export default function App() {
     const shared = { employees, vacations, role, reload, notify: setToast };
     if (tab === "contratos") return <Contracts {...shared} />;
     if (tab === "vacaciones") return <Vacations {...shared} />;
-    if (tab === "historial") return <History employees={employees} role={role} />;
+    if (tab === "historial") return <History employees={employees} vacations={vacations} role={role} />;
     if (tab === "reportes") return <Reports employees={employees} vacations={vacations} />;
     return <Employees {...shared} />;
   }, [tab, employees, vacations, role, reload]);
