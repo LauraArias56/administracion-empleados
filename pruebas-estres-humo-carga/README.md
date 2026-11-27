@@ -1,13 +1,32 @@
 # Pruebas de rendimiento (k6)
 
-Pruebas de humo (smoke), carga (load) y estrés (stress) de la API de administración de empleados. Es un proyecto independiente: solo consume los endpoints HTTP de la aplicación (`config/env.js`).
+Pruebas de humo (smoke), carga (load) y estrés (stress) de la API de administración de empleados. Los escenarios consumen la API por HTTP y se ejecutan por separado del pipeline de CI.
 
 ## Requisitos
 
-- [k6](https://k6.io/docs/get-started/installation/) instalado (`k6 version`). No es un paquete de npm.
-- La aplicación en ejecución, por defecto en `http://localhost:3000/api`. Otra dirección: `k6 run -e BASE_URL=http://localhost:3100/api <archivo>`.
+- k6 instalado y disponible en `PATH`. Puedes comprobarlo con `k6 version`. [Instalación de k6](https://grafana.com/docs/k6/latest/get-started/installation/)
+- Una instancia de la API en ejecución. [Instrucciones para arrancar la API local](../README.md#instalación-y-ejecución-local).
 
-> Estas pruebas **crean datos reales** (empleados, vacaciones, historial), sobre todo carga y estrés. Arranca la aplicación con una base aparte para no ensuciar la de la presentación: `SQLITE_DB_FILE=data/performance.db npm start` (PowerShell: `$env:SQLITE_DB_FILE="data/performance.db"; npm start`).
+## Ejecución local
+
+La URL predeterminada de [config/env.js](config/env.js) apunta al despliegue en Vercel (`https://administracion-empleados.vercel.app/api`). Para ejecutar los escenarios en local, establece `BASE_URL` antes de lanzar k6. Los escenarios escriben datos, así que inicia la API con una base dedicada.
+
+En PowerShell, desde la raíz del repositorio, compila e inicia la API.
+
+```powershell
+npm run build
+$env:SQLITE_DB_FILE = 'data/performance.db'
+npm start
+```
+
+En otra terminal PowerShell, también desde la raíz, selecciona la API local y ejecuta el escenario de humo.
+
+```powershell
+$env:BASE_URL = 'http://localhost:3000/api'
+npm run smoke:create-employee --prefix pruebas-estres-humo-carga
+```
+
+También puedes pasar la URL a k6 mediante `-e BASE_URL=http://localhost:3000/api`. Cada escenario añade `/v1` al prefijo `/api`.
 
 ## Estructura
 
@@ -33,7 +52,7 @@ scenarios/
 | `POST /api/v1/employees/:id/vacations` | `npm run smoke:request-vacation` | `npm run load:request-vacation` | `npm run stress:request-vacation` |
 | `PATCH /api/v1/vacations/:id` | `npm run smoke:resolve-vacation` | `npm run load:resolve-vacation` | `npm run stress:resolve-vacation` |
 
-`npm run smoke:all` ejecuta las cinco pruebas de humo seguidas.
+Ejecuta estos comandos desde `pruebas-estres-humo-carga/` o agrega `--prefix pruebas-estres-humo-carga` al ejecutarlos desde la raíz. `npm run smoke:all` ejecuta las cinco pruebas de humo seguidas.
 
 ## Perfiles (iguales para todos los endpoints)
 

@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, fix/sonar-duplication-cleanup]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-analyze:
+    name: Compilación, pruebas y SonarCloud
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Instalar dependencias de la API
+        run: npm ci
+
+      - name: Instalar dependencias del frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Compilar la API y el frontend
+        run: npm run build
+
+      - name: Pruebas unitarias con cobertura
+        run: npm run test:coverage
+
+      - name: Validar tipos de las pruebas de API
+        run: npm run typecheck:api
+
+      - name: Pruebas de API con Playwright
+        # Omite pretest:api porque el proyecto ya se compiló.
+        run: npm --ignore-scripts run test:api
+
+      - name: Comprobar configuración de SonarCloud
+        id: sonar-config
+        env:
+          SONAR_TOKEN_CONFIGURADO: ${{ secrets.SONAR_TOKEN != '' }}
+        run: |
+          if [[ "$SONAR_TOKEN_CONFIGURADO" == "true" && -f sonar-project.properties ]] &&
+             grep -Eq '^[[:space:]]*sonar\.projectKey[[:space:]]*=[[:space:]]*[^[:space:]]' sonar-project.properties &&
+             grep -Eq '^[[:space:]]*sonar\.organization[[:space:]]*=[[:space:]]*[^[:space:]]' sonar-project.properties; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+            echo '::notice::SonarCloud omitido. Se requieren sonar.projectKey, sonar.organization y el secreto SONAR_TOKEN.'
+          fi
+
+      - name: Análisis con SonarCloud
+        if: steps.sonar-config.outputs.enabled == 'true'
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
