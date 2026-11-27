@@ -2,7 +2,7 @@ import { test, expect } from "../../fixtures/employee.fixture";
 import { listVacations } from "../../services/vacations.services";
 
 test.describe("GET /api/v1/vacations", () => {
-  test("should return the vacation requests stored in SQLite", async ({ request, employee, makeVacation }) => {
+  test("should return the vacation requests stored in PostgreSQL", async ({ request, employee, makeVacation }) => {
     const vacation = await makeVacation(employee.id, "2026-09-01", "2026-09-02");
     const response = await listVacations(request);
 

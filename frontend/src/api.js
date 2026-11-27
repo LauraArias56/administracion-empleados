@@ -2,6 +2,7 @@
 
 async function request(path, options = {}) {
   const response = await fetch(`/datos/v1${path}`, {
+    cache: "no-store",
     ...options,
     headers: {
       "Content-Type": "application/json",

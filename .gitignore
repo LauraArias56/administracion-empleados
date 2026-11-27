@@ -4,7 +4,7 @@ dist/
 coverage
 *.lcov
 
-# Base de datos local (SQLite) y JSON de la versión anterior
+# Datos locales
 data/
 
 # Resultados de Playwright

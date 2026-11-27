@@ -6,8 +6,12 @@ import {
   EMPLOYMENT,
   POSITIONS,
   clampSalary,
+  contractStartError,
   cop,
+  documentError,
   labelOf,
+  personNameError,
+  salaryError,
   todayISO,
 } from "../domain";
 import { Avatar, Modal, Money, Pill } from "../ui";
@@ -56,24 +60,50 @@ export function Employees({ employees, role, reload, notify }) {
     }));
   }
 
+  function fieldError(draft, key) {
+    if (key === "firstName") return personNameError(draft.firstName, "nombre");
+    if (key === "lastName") return personNameError(draft.lastName, "apellido");
+    if (key === "document") return documentError(draft.document);
+    if (key === "salary") return salaryError(draft.salary, POSITIONS.find((item) => item.name === draft.position));
+    if (key === "startDate") return contractStartError(draft.startDate);
+    return "";
+  }
+
+  function formError(draft) {
+    const range = POSITIONS.find((item) => item.name === draft.position);
+    if (draft.mode === "create") {
+      const nameMessage = personNameError(draft.firstName, "nombre") || personNameError(draft.lastName, "apellido");
+      if (nameMessage) return nameMessage;
+      const cedulaMessage = documentError(draft.document);
+      if (cedulaMessage) return cedulaMessage;
+    }
+    if (!range) return "Selecciona un cargo válido.";
+    if (!EMPLOYMENT.some(([id]) => id === draft.status)) return "Selecciona un estado laboral válido.";
+    const salaryMessage = salaryError(draft.salary, range);
+    if (salaryMessage) return salaryMessage;
+    if (draft.mode !== "create") return "";
+    if (!CONTRACT_TYPES.some(([id]) => id === draft.contractType)) return "Selecciona un tipo de contrato válido.";
+    if (!CONTRACT_STATUSES.some(([id]) => id === draft.contractStatus)) return "Selecciona un estado de contrato válido.";
+    return contractStartError(draft.startDate);
+  }
+
+  function updateField(key, value) {
+    const next = { ...form, [key]: value };
+    setForm(next);
+    setError(fieldError(next, key));
+  }
+
   async function save() {
+    const message = formError(form);
+    if (message) return setError(message);
     const firstName = form.firstName.trim();
     const lastName = form.lastName.trim();
     const document = form.document.trim();
-    const range = POSITIONS.find((item) => item.name === form.position);
     const salary = Number(form.salary);
-
-    if (firstName.length < 3) return setError("El nombre debe tener al menos 3 caracteres.");
-    if (!lastName) return setError("Escribe el apellido.");
-    if (!document) return setError("Escribe el documento.");
-    if (!Number.isFinite(salary) || salary < 0) return setError("El salario debe ser un número mayor o igual a cero.");
-    if (range && (salary < range.min || salary > range.max)) {
-      return setError(`El salario debe estar entre ${cop(range.min)} y ${cop(range.max)}.`);
-    }
 
     try {
       if (form.mode === "create") {
-        await createEmployee({
+        const saved = await createEmployee({
           document,
           firstName,
           lastName,
@@ -87,6 +117,9 @@ export function Employees({ employees, role, reload, notify }) {
           },
         });
         notify("Empleado guardado en la base de datos.");
+        setForm(null);
+        await reload(saved ? [saved] : []);
+        return;
       } else {
         await updateEmployee(form.id, {
           position: form.position,
@@ -173,13 +206,19 @@ export function Employees({ employees, role, reload, notify }) {
 
       <Modal open={Boolean(form)} title={form?.mode === "edit" ? "Editar empleado" : "Nuevo empleado"} onClose={() => setForm(null)} onSubmit={save}>
         <label>Nombre
-          <input value={form?.firstName ?? ""} readOnly={form?.mode === "edit"} onChange={(event) => setForm({ ...form, firstName: event.target.value })} />
+          <input value={form?.firstName ?? ""} readOnly={form?.mode === "edit"} onChange={(event) => updateField("firstName", event.target.value)} />
         </label>
         <label>Apellido
-          <input value={form?.lastName ?? ""} readOnly={form?.mode === "edit"} onChange={(event) => setForm({ ...form, lastName: event.target.value })} />
+          <input value={form?.lastName ?? ""} readOnly={form?.mode === "edit"} onChange={(event) => updateField("lastName", event.target.value)} />
         </label>
-        <label>Documento
-          <input value={form?.document ?? ""} onChange={(event) => setForm({ ...form, document: event.target.value })} readOnly={form?.mode === "edit"} />
+        <label>Cédula
+          <input
+            inputMode="numeric"
+            placeholder="10 dígitos"
+            value={form?.document ?? ""}
+            onChange={(event) => updateField("document", event.target.value)}
+            readOnly={form?.mode === "edit"}
+          />
         </label>
         <label>Cargo
           <select value={form?.position ?? ""} onChange={(event) => changePosition(event.target.value)}>
@@ -190,7 +229,7 @@ export function Employees({ employees, role, reload, notify }) {
           </select>
         </label>
         <label>Salario mensual
-          <input type="number" min="0" step="50000" value={form?.salary ?? ""} onChange={(event) => setForm({ ...form, salary: event.target.value })} />
+          <input inputMode="numeric" value={form?.salary ?? ""} onChange={(event) => updateField("salary", event.target.value)} />
         </label>
         {selected ? <p className="hint">Rango del cargo: {cop(selected.min)} – {cop(selected.max)}</p> : null}
         <label>Estado laboral
@@ -201,7 +240,7 @@ export function Employees({ employees, role, reload, notify }) {
         {form?.mode === "create" ? (
           <>
             <label>Inicio del contrato
-              <input type="date" value={form.startDate} onChange={(event) => setForm({ ...form, startDate: event.target.value })} />
+              <input type="date" value={form.startDate} onChange={(event) => updateField("startDate", event.target.value)} />
             </label>
             <label>Tipo de contrato
               <select value={form.contractType} onChange={(event) => setForm({ ...form, contractType: event.target.value })}>

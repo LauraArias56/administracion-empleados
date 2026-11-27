@@ -83,6 +83,53 @@ export const clampSalary = (salary, position) => {
   return Math.min(position.max, Math.max(position.min, amount));
 };
 
+const HAS_NUMBER = /\d/;
+const HAS_LETTER = /\p{L}/u;
+const ONLY_LETTERS = /^[\p{L}]+(?:\s+[\p{L}]+)*$/u;
+
+export function personNameError(value, label) {
+  const text = String(value ?? "").trim();
+  if (!text) return `Escribe el ${label}.`;
+  if (HAS_NUMBER.test(text)) return `El ${label} no es válido porque contiene números.`;
+  if (!ONLY_LETTERS.test(text)) return `El ${label} no es válido porque solo puede contener letras.`;
+  const letters = text.replace(/\s+/g, "");
+  if (label === "nombre" && letters.length < 3) return "El nombre debe tener al menos 3 letras.";
+  if (label === "apellido" && letters.length < 2) return "El apellido debe tener al menos 2 letras.";
+  return "";
+}
+
+export function documentError(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "Escribe la cédula.";
+  if (HAS_LETTER.test(text)) return "La cédula no es válida porque contiene letras.";
+  if (!/^\d+$/.test(text)) return "La cédula no es válida porque contiene caracteres que no son números.";
+  if (text.length !== 10) return "La cédula debe tener 10 dígitos.";
+  return "";
+}
+
+export function salaryError(value, range) {
+  const text = String(value ?? "").trim();
+  if (!text) return "Escribe el salario.";
+  if (HAS_LETTER.test(text)) return "El salario no es válido porque contiene letras.";
+  if (!/^\d+$/.test(text)) return "El salario no es válido porque solo puede contener números.";
+  const salary = Number(text);
+  if (range && (salary < range.min || salary > range.max)) {
+    return `El salario debe estar entre ${cop(range.min)} y ${cop(range.max)}.`;
+  }
+  return "";
+}
+
+export function contractStartError(value) {
+  if (!value) return "Indica la fecha de inicio del contrato.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "La fecha de inicio no es válida.";
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return "La fecha de inicio no es válida.";
+  }
+  return "";
+}
+
 export const initials = (name) =>
   name
     .trim()
@@ -96,6 +143,9 @@ export const ANNUAL_DAYS = 15;
 export function validateVacation(employees, vacations, draft) {
   if (!draft.employeeId) return "Selecciona un empleado.";
   if (!draft.startDate || !draft.endDate) return "Indica la fecha de inicio y la de fin.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(draft.endDate)) {
+    return "Las fechas no son válidas.";
+  }
   if (draft.endDate < draft.startDate) return "La fecha final no puede ser anterior a la inicial.";
   const today = todayISO();
   if (draft.startDate < today || draft.endDate < today) return "No se aceptan fechas pasadas.";
