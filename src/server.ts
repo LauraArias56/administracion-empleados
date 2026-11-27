@@ -1,10 +1,10 @@
-import express, { type RequestHandler } from "express";
+import express from "express";
 import { scopePerRequest } from "awilix-express";
 import { container } from "./config/container";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import V1Routes from "./routes/v1/index";
 
-export const createServer = (beforeApi?: RequestHandler) => {
+export const createServer = () => {
   const app = express();
 
   app.use(express.json());
@@ -13,7 +13,6 @@ export const createServer = (beforeApi?: RequestHandler) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Cache-Control", "no-store");
     if (req.method === "OPTIONS") {
       res.sendStatus(204);
       return;
@@ -21,9 +20,8 @@ export const createServer = (beforeApi?: RequestHandler) => {
     next();
   });
   app.use(scopePerRequest(container));
-  const apiPaths = ["/api", "/datos", "/backend"];
-  if (beforeApi) app.use(apiPaths, beforeApi);
-  app.use(apiPaths, V1Routes);
+  app.use("/api", V1Routes);
+  app.use("/datos", V1Routes);
   app.use(errorMiddleware);
 
   return app;

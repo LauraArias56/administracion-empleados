@@ -1,18 +1,19 @@
 /**
- * Comprueba que los datos sobreviven al reinicio usando exclusivamente verify_persistence.
+ * Comprueba de extremo a extremo que los datos sobreviven a un reinicio de la aplicación:
+ * arranca la app real con una base SQLite temporal, crea datos, la detiene, la vuelve a
+ * arrancar y verifica que los datos siguen ahí. No toca data/employees.db.
  */
+const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const assert = require("assert");
 const { spawn } = require("child_process");
-const schema = process.env.DB_SCHEMA || "verify_persistence";
-try { process.loadEnvFile(path.resolve(__dirname, "..", ".env")); } catch (error) { if (error.code !== "ENOENT") throw error; }
 
 const root = path.resolve(__dirname, "..");
 const PORT = Number(process.env.VERIFY_PORT) || 3199;
 const BASE = `http://127.0.0.1:${PORT}/api/v1`;
-if (!process.env.DATABASE_URL) throw new Error("Falta DATABASE_URL para verify:persistence.");
-if (!schema.startsWith("test_") && !schema.startsWith("verify_")) throw new Error("verify:persistence solo puede recrear esquemas test_* o verify_*.");
-if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schema)) throw new Error("DB_SCHEMA contiene un nombre no válido.");
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "verify-persistencia-"));
+const dbFile = path.join(dir, "employees.db");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -28,7 +29,7 @@ async function api(method, route, body) {
 async function startServer() {
   const child = spawn(process.execPath, [path.join(root, "dist", "main.js")], {
     cwd: root,
-    env: { ...process.env, PORT: String(PORT), DB_SCHEMA: schema },
+    env: { ...process.env, PORT: String(PORT), SQLITE_DB_FILE: dbFile, LEGACY_JSON_FILE: "" },
     stdio: "ignore",
   });
   for (let attempt = 0; attempt < 50; attempt++) {
@@ -54,13 +55,7 @@ function stopServer(child) {
 (async () => {
   let server;
   try {
-    const { Client } = require("pg");
-    const client = new Client({ connectionString: process.env.DATABASE_URL });
-    await client.connect();
-    await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-    await client.query(`CREATE SCHEMA "${schema}"`);
-    await client.end();
-    console.log("1) Arrancando la aplicación con una base PostgreSQL nueva...");
+    console.log("1) Arrancando la aplicación con una base SQLite nueva...");
     server = await startServer();
 
     const created = await api("POST", "/employees", {
@@ -81,9 +76,10 @@ function stopServer(child) {
 
     console.log("2) Deteniendo la aplicación...");
     await stopServer(server);
-    console.log("   servidor detenido");
+    assert.ok(fs.existsSync(dbFile), "el archivo .db debe existir");
+    console.log(`   archivo ${dbFile} (${fs.statSync(dbFile).size} bytes)`);
 
-    console.log("3) Arrancando de nuevo con el mismo esquema...");
+    console.log("3) Arrancando de nuevo con el mismo archivo...");
     server = await startServer();
 
     const employee = await api("GET", `/employees/${id}`);
@@ -115,8 +111,6 @@ function stopServer(child) {
     process.exitCode = 1;
   } finally {
     if (server && server.exitCode === null) await stopServer(server);
-    const { Client } = require("pg");
-    const client = new Client({ connectionString: process.env.DATABASE_URL });
-    try { await client.connect(); await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`); } finally { await client.end(); }
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 })();

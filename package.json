@@ -21,19 +21,19 @@
     "precheck:endpoints": "npm run build",
     "verify:persistence": "node scripts/verify-persistence.js",
     "preverify:persistence": "npm run build",
+    "migrate:json": "node scripts/migrate-json.js",
+    "premigrate:json": "npm run build",
     "typecheck:api": "tsc -p api-tests/tsconfig.json"
   },
   "dependencies": {
     "awilix": "13.0.5",
     "awilix-express": "11.0.1",
-    "express": "^5.2.1",
-    "pg": "^8.16.3"
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.4.0",
-    "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",

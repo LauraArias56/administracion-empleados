@@ -10,8 +10,6 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
-// Importar el router carga el contenedor, pero este script no conecta a la base.
-process.env.DATABASE_URL ||= "postgresql://localhost/endpoint_check";
 // server.ts monta las rutas en "/api" y routes/v1/index.ts en "/v1".
 const PREFIX = "/api/v1";
 

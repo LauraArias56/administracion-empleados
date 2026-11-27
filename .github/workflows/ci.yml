@@ -13,20 +13,6 @@ jobs:
   build-test-analyze:
     name: Compilación, pruebas y SonarCloud
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: employees_ci
-        ports:
-          - 5432/tcp
-        options: >-
-          --health-cmd "pg_isready -U postgres -d employees_ci"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
 
     steps:
       - name: Descargar el código
@@ -62,8 +48,6 @@ jobs:
 
       - name: Pruebas de API con Playwright
         # Omite pretest:api porque el proyecto ya se compiló.
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/employees_ci
         run: npm --ignore-scripts run test:api
 
       - name: Comprobar configuración de SonarCloud
