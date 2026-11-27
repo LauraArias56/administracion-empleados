@@ -28,11 +28,24 @@ export const loadVacations = () => request("/vacations");
 export const createEmployee = (body) =>
   request("/employees", { method: "POST", body: JSON.stringify(body) });
 
-export const updateEmployee = (id, body) =>
-  request(`/employees/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+function requireId(id) {
+  if (typeof id !== "string" && typeof id !== "number") {
+    throw new Error("Identificador inválido.");
+  }
 
-export const requestVacation = (employeeId, body) =>
-  request(`/employees/${employeeId}/vacations`, { method: "POST", body: JSON.stringify(body) });
+  const value = String(id);
+  const number = Number(value);
+  if (!/^[1-9][0-9]*$/.test(value) || !Number.isSafeInteger(number)) {
+    throw new Error("Identificador inválido.");
+  }
+  return number;
+}
 
-export const resolveVacation = (id, decision) =>
-  request(`/vacations/${id}`, { method: "PATCH", body: JSON.stringify({ decision }) });
+export const updateEmployee = async (id, body) =>
+  request(`/employees/${requireId(id)}`, { method: "PATCH", body: JSON.stringify(body) });
+
+export const requestVacation = async (employeeId, body) =>
+  request(`/employees/${requireId(employeeId)}/vacations`, { method: "POST", body: JSON.stringify(body) });
+
+export const resolveVacation = async (id, decision) =>
+  request(`/vacations/${requireId(id)}`, { method: "PATCH", body: JSON.stringify({ decision }) });
