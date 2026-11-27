@@ -30,12 +30,12 @@ export const createEmployee = (body) =>
 
 function requireId(id) {
   if (typeof id !== "string" && typeof id !== "number") {
-    throw new Error("Identificador inválido.");
+    throw new TypeError("Identificador inválido.");
   }
 
   const value = String(id);
   const number = Number(value);
-  if (!/^[1-9][0-9]*$/.test(value) || !Number.isSafeInteger(number)) {
+  if (!/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(number)) {
     throw new Error("Identificador inválido.");
   }
   return number;

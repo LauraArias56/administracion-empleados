@@ -18,9 +18,23 @@ El [workflow de CI](.github/workflows/ci.yml) se ejecuta con Node.js 22 en Ubunt
 
 ### SonarCloud
 
-El análisis está pendiente de configuración. Para habilitarlo, completa `sonar.projectKey` y `sonar.organization` en [sonar-project.properties](sonar-project.properties) y guarda `SONAR_TOKEN` como secreto del repositorio en **Settings → Secrets and variables → Actions**. Mientras falte algún valor, el workflow omite el análisis y ejecuta la compilación y las pruebas.
+GitHub Actions ejecuta el análisis con los valores de `sonar.projectKey` y `sonar.organization` definidos en [sonar-project.properties](sonar-project.properties) y el secreto `SONAR_TOKEN` del repositorio. [Panel del proyecto en SonarCloud](https://sonarcloud.io/project/overview?id=LauraArias56_administracion-empleados).
 
 El análisis incluye la API y el frontend. La cobertura corresponde a las pruebas unitarias de la API y se importa desde `coverage/lcov.info`.
+
+![Captura de SonarCloud con la puerta de calidad aprobada y una cobertura del 90,3 %](docs/sonarcloud-dashboard.png)
+
+Resumen del análisis de `main` del 27 de noviembre de 2026.
+
+| **Métrica**       | **Resultado**                        |
+| ----------------- | ------------------------------------ |
+| Seguridad         | A · 0 issues abiertos o confirmados  |
+| Fiabilidad        | A · 13 issues abiertos o confirmados |
+| Mantenibilidad    | A · 34 issues abiertos o confirmados |
+| Issues aceptados  | 0                                    |
+| Cobertura         | 90,3 % (363 líneas medibles)         |
+| Duplicaciones     | 0,0 % (2.398 líneas de código)       |
+| Security hotspots | 0                                    |
 
 ## Requisitos
 
@@ -112,7 +126,7 @@ Al arrancar, si la base SQLite está vacía y existe `data/db.json`, sus datos s
 
 - **Unitarias (Vitest)**. Cubren el servicio, el controlador, el middleware de errores, los repositorios SQLite y la migración.
 - **API (Playwright)**. `npm run test:api` levanta la aplicación compilada en el puerto `3100` y recrea su base aislada en `data/test/employees.test.db`. Las pruebas hacen solicitudes HTTP y pueden ejecutarse sin instalar navegadores.
-- **Rendimiento (k6)**. Los escenarios de humo, carga y estrés se ejecutan por separado del CI. [Instrucciones y comandos de k6](pruebas-estres-humo-carga/README.md).
+- **Rendimiento (k6)**. Las pruebas de estrés, humo y carga se ejecutan por separado del CI y se mantienen en el repositorio [YeisonCv/Pruebas_Estres_Humo_Carga](https://github.com/YeisonCv/Pruebas_Estres_Humo_Carga).
 
 Para probar un entorno de integración remoto, establece `TEST_API_BASE_URL` con su URL base hasta `/api/`. Esta opción se usa fuera del CI y las pruebas crean empleados y solicitudes de vacaciones en ese entorno.
 
@@ -129,6 +143,28 @@ Para probar un entorno de integración remoto, establece `TEST_API_BASE_URL` con
 | `PATCH /api/v1/vacations/:id` | `api-tests/tests/vacations/resolve-vacation.spec.ts` | 16 | Aprobar, rechazar, efecto en solapes, 4 casos de 409 ya resuelta, 404, 400 id vacío, 4 decisiones inválidas |
 
 `npm run check:endpoints` lee las rutas reales de Express y confirma que cada una tiene su `test.describe` con ese nombre.
+
+### Pruebas de rendimiento de CreateEmployee
+
+Las capturas muestran los resultados de k6 para el endpoint de creación de empleados, `POST /api/v1/employees`.
+
+#### Humo
+
+Con 1 usuario virtual, las 8 solicitudes devolvieron HTTP 201 y se cumplieron todos los umbrales.
+
+![Resultados de la prueba de humo de CreateEmployee con k6](docs/k6-create-employee-smoke.png)
+
+#### Carga
+
+Con hasta 30 usuarios virtuales, las 1.152 solicitudes devolvieron HTTP 201. El percentil 95 de latencia fue de 1,79 s y se superaron los umbrales de duración y espera.
+
+![Resultados de la prueba de carga de CreateEmployee con k6](docs/k6-create-employee-load.png)
+
+#### Estrés
+
+Con hasta 1.000 usuarios virtuales, se realizaron 9.316 solicitudes. El 8,78 % falló y se superaron los umbrales de duración, espera y tasa de fallos.
+
+![Resultados de la prueba de estrés de CreateEmployee con k6](docs/k6-create-employee-stress.png)
 
 ## Estructura
 
@@ -148,7 +184,7 @@ src/
 frontend/                        Interfaz React y configuración de Vite
 test/                            Pruebas unitarias con Vitest
 api-tests/                       Pruebas Playwright (services, fixtures, support, tests)
-pruebas-estres-humo-carga/         Escenarios de rendimiento con k6
+docs/                            Capturas de SonarCloud y de las pruebas con k6
 scripts/                         migrate-json, check-endpoint-coverage, verify-persistence
 .github/workflows/ci.yml         Pipeline de GitHub Actions
 ```
