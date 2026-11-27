@@ -54,6 +54,12 @@ describe("EmployeeController", () => {
 
   function createController(): EmployeeController {
     const service: IEmployeeService = {
+      async listEmployees() {
+        return [employee];
+      },
+      async listVacations() {
+        return [vacation];
+      },
       async createEmployee(request: CreateEmployeeRequestDTO) {
         return { ...employee, document: request.document };
       },
@@ -77,6 +83,26 @@ describe("EmployeeController", () => {
 
     return new EmployeeController(service);
   }
+
+  it("should list employees with status 200", async () => {
+    const controller = createController();
+    const response = createResponse();
+
+    await controller.listEmployees({} as Request, response as unknown as Response);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.payload).toEqual([employee]);
+  });
+
+  it("should list vacations with status 200", async () => {
+    const controller = createController();
+    const response = createResponse();
+
+    await controller.listVacations({} as Request, response as unknown as Response);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.payload).toEqual([vacation]);
+  });
 
   it("should create an employee with status 201", async () => {
     const controller = createController();

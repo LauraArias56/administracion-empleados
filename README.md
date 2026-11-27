@@ -117,7 +117,7 @@ Derivadas de lo que ya usaba la aplicación (`EmployeeRecord`, `HistoryEntryDTO`
 
 ## Pruebas
 
-- **Unitarias (Vitest)**. Cubren el servicio, el controlador, el middleware de errores y la configuración de PostgreSQL.
+- **Vitest**. Cubre el servicio, el controlador y el middleware de errores. Con `TEST_DATABASE_URL` apuntando a un PostgreSQL de pruebas, también valida los repositorios en esquemas temporales e incluye su cobertura en `coverage/lcov.info`. En CI se usa el PostgreSQL temporal del runner.
 - **API (Playwright)**. `npm run test:api` usa `DATABASE_URL` para levantar la aplicación compilada en el puerto `3100` y recrear el esquema de pruebas `test_api`. Las pruebas hacen solicitudes HTTP y pueden ejecutarse sin instalar navegadores.
 - **Rendimiento (k6)**. Las pruebas de estrés, humo y carga se ejecutan por separado del CI y se mantienen en el repositorio [YeisonCv/Pruebas_Estres_Humo_Carga](https://github.com/YeisonCv/Pruebas_Estres_Humo_Carga).
 

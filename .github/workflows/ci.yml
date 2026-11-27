@@ -54,7 +54,9 @@ jobs:
       - name: Compilar la API y el frontend
         run: npm run build
 
-      - name: Pruebas unitarias con cobertura
+      - name: Pruebas con cobertura
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/employees_ci
         run: npm run test:coverage
 
       - name: Validar tipos de las pruebas de API

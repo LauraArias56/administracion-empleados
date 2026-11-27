@@ -323,6 +323,18 @@ describe("EmployeeService", () => {
     ).rejects.toThrow("El estado laboral no es válido");
   });
 
+  it("should reject an invalid contract status without changing the employee", async () => {
+    const service = createTestService();
+    const created = await service.createEmployee(validEmployee());
+
+    await expect(service.updateEmployee(created.id, {
+      position: "Lider",
+      contractStatus: "desconocido" as "vigente",
+    })).rejects.toMatchObject({ code: "CONTRACT_STATUS_INVALID", statusCode: 400 });
+
+    expect(await service.getEmployee(created.id)).toEqual(created);
+  });
+
   it("should request vacations for an active employee", async () => {
     const service = createTestService();
     const created = await service.createEmployee(validEmployee());

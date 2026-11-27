@@ -16,9 +16,9 @@ import { IEmployeeRepository } from "../repositories/interfaces/employee.reposit
 import { IVacationRepository } from "../repositories/interfaces/vacation.repository.interface";
 import { IEmployeeService } from "./interfaces/employee.interface";
 
-const CONTRACT_TYPES: ContractType[] = ["indefinido", "fijo", "obra_labor"];
-const CONTRACT_STATUSES: ContractStatus[] = ["vigente", "finalizado"];
-const EMPLOYMENT_STATUSES: EmploymentStatus[] = ["activo", "inactivo"];
+const CONTRACT_TYPES = new Set<ContractType>(["indefinido", "fijo", "obra_labor"]);
+const CONTRACT_STATUSES = new Set<ContractStatus>(["vigente", "finalizado"]);
+const EMPLOYMENT_STATUSES = new Set<EmploymentStatus>(["activo", "inactivo"]);
 
 export class EmployeeService implements IEmployeeService {
   constructor(
@@ -49,7 +49,7 @@ export class EmployeeService implements IEmployeeService {
     this.assertSalary(request.salary);
 
     const status = request.status ?? "activo";
-    if (!EMPLOYMENT_STATUSES.includes(status)) {
+    if (!EMPLOYMENT_STATUSES.has(status)) {
       this.fail(AppError.EMPLOYMENT_STATUS_INVALID);
     }
 
@@ -58,12 +58,12 @@ export class EmployeeService implements IEmployeeService {
     }
 
     const contractType = request.contract.type;
-    if (!CONTRACT_TYPES.includes(contractType)) {
+    if (!CONTRACT_TYPES.has(contractType)) {
       this.fail(AppError.CONTRACT_TYPE_INVALID);
     }
 
     const contractStatus = request.contract.status ?? "vigente";
-    if (!CONTRACT_STATUSES.includes(contractStatus)) {
+    if (!CONTRACT_STATUSES.has(contractStatus)) {
       this.fail(AppError.CONTRACT_STATUS_INVALID);
     }
 
@@ -116,13 +116,13 @@ export class EmployeeService implements IEmployeeService {
       this.assertSalary(request.salary);
     }
 
-    if (request.status !== undefined && !EMPLOYMENT_STATUSES.includes(request.status)) {
+    if (request.status !== undefined && !EMPLOYMENT_STATUSES.has(request.status)) {
       this.fail(AppError.EMPLOYMENT_STATUS_INVALID);
     }
 
     if (
       request.contractStatus !== undefined &&
-      !CONTRACT_STATUSES.includes(request.contractStatus)
+      !CONTRACT_STATUSES.has(request.contractStatus)
     ) {
       this.fail(AppError.CONTRACT_STATUS_INVALID);
     }
