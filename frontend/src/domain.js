@@ -69,7 +69,7 @@ export const businessDays = (start, end) => {
   const cursor = parseISO(start);
   const last = parseISO(end);
   let count = 0;
-  while (cursor <= last) {
+  while (cursor.getTime() <= last.getTime()) {
     const day = cursor.getDay();
     if (day !== 0 && day !== 6) count += 1;
     cursor.setDate(cursor.getDate() + 1);
